@@ -1,16 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-
-uint32_t my_ntohl(uint32_t n)
-{
-        uint32_t n1 = n & 0xFF000000;
-        uint32_t n2 = n & 0x00FF0000;
-        uint32_t n3 = n & 0x0000FF00;
-        uint32_t n4 = n & 0x000000FF;
-
-        uint32_t ret = (n1 >> 24) | (n2 >> 8) | (n3 << 8) | (n4 << 24);
-        return ret;
-}
+#include <arpa/inet.h>
 
 int main(int argc, char *argv[])
 {
@@ -44,8 +34,8 @@ int main(int argc, char *argv[])
 	fread(&raw1, 4, 1, fp1);
 	fread(&raw2, 4, 1, fp2);
 	
-	num1 = my_ntohl(raw1);
-	num2 = my_ntohl(raw2);
+	num1 = ntohl(raw1);
+	num2 = ntohl(raw2);
 
 	sum = num1 + num2;
 
