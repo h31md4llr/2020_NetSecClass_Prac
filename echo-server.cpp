@@ -35,7 +35,7 @@ struct Param {
 				continue;
 			}
 			if (strcmp(argv[i], "-b") == 0) {
-				echo = true;
+				broadcast = true;
 				continue;
 			}
 			port = stoi(argv[i++]);
@@ -126,6 +126,7 @@ int main(int argc, char* argv[]) {
 		struct sockaddr_in cli_addr;
 		socklen_t len = sizeof(cli_addr);
 		int cli_sd = accept(sd, (struct sockaddr *)&cli_addr, &len);
+		clients_sd.push_back(cli_sd);
 		if (cli_sd == -1) {
 			perror("accept");
 			break;
