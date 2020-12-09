@@ -41,6 +41,7 @@ struct beacon_info
 	u_int8_t bssid[6];
 	int beacon = 0;
 	char *name;
+    int8_t pwr;
 };
 #pragma pack(pop)
 
@@ -51,10 +52,34 @@ int find_bssid(u_int8_t* bssid)
 		if(!memcmp(vinfo[i].bssid, bssid, 6))
 		{
 			vinfo[i].beacon++;
-			return 0;
+			return i;
 		}
 	}
 	return -1;
+}
+
+int8_t get_pwr(const u_char* packet)
+{
+    u_int32_t present = *(u_int32_t*)(packet + 4);
+    int idx = 12;
+
+    if(!(present & 0x20))
+        return 0;
+
+    if(present & 0x1)
+        idx += 8;
+    if(present & 0x2)
+        idx += 1;
+    if(present & 0x4)
+        idx += 1;
+    if(present & 0x8)
+        idx += 4;
+    if(present & 0x10)
+        idx += 1;
+    if(present & 0x80000000)
+        idx += 4;
+
+    return *(int8_t*)(packet + idx);
 }
 
 int parse(const u_char* packet)
@@ -74,25 +99,32 @@ int parse(const u_char* packet)
 
     	tmp_info.name = (char*)malloc((int)bframe->len);
     	memcpy(tmp_info.name, packet + hlen + sizeof(struct beacon_frame), bframe->len);
-    	
+
     	int res = find_bssid(tmp_info.bssid);
+        int8_t tmpwr = get_pwr(packet);
     	if(res == -1)
     	{
     		tmp_info.beacon++;
+            tmp_info.pwr = get_pwr(packet);
     		vinfo.push_back(tmp_info);
+            free(bframe);
     		return 0;
     	}
+        if(tmpwr != 0)
+            vinfo[res].pwr = tmpwr;
 
     	free(tmp_info.name);
     }
+    free(bframe);
 }
 
 void print_format()
 {
-	printf("BSSID\t\t\tBeacon\tName\n");
+	printf("BSSID\t\t\tPWR\tBeacon\tName\n");
 	for(int i = 0 ; i < vinfo.size() ; i++)
 	{
-		printf("%02X:%02X:%02X:%02X:%02X:%02X\t", vinfo[i].bssid[0],vinfo[i].bssid[1],vinfo[i].bssid[2],vinfo[i].bssid[3],vinfo[i].bssid[4],vinfo[i].bssid[5]);		
+		printf("%02X:%02X:%02X:%02X:%02X:%02X\t", vinfo[i].bssid[0],vinfo[i].bssid[1],vinfo[i].bssid[2],vinfo[i].bssid[3],vinfo[i].bssid[4],vinfo[i].bssid[5]);	
+        printf("%d\t", vinfo[i].pwr);
 		printf("%d\t", vinfo[i].beacon);
 		printf("%s\n", vinfo[i].name);
 	}
