@@ -42,14 +42,11 @@ u_short ip_checksum(struct libnet_ipv4_hdr* ip_hdr)
 	for(int i = 0 ; i < (ip_hdr->ip_hl * 4) ; i+=2)
 	{
 		sum += *(u_short*)(raw + i);
-		printf("%04x ", *(u_short*)(raw+i));
 	}
-	printf("\nsum : %08x\n", sum);
 
 	u_short checksum = sum >> 16;
 	checksum += sum & 0xffff;
 
-	printf("checksum : %04x\n", checksum);
 	return checksum ^ 0xffff;
 }
 
@@ -80,7 +77,6 @@ void send_rst(pcap_t *handle, struct packet_hdr *b_packet)
 {
 	int size = sizeof(struct libnet_ethernet_hdr) + (b_packet->ipv4.ip_hl * 4) + (b_packet->tcp.th_off * 4);
 	int data_len = ntohs(b_packet->ipv4.ip_len) - (b_packet->ipv4.ip_hl * 4) - (b_packet->tcp.th_off * 4);
-	printf("data_len : %d\n", data_len);
 
 	uint8_t *new_packet = (uint8_t*)malloc(size);
 	memcpy(new_packet, b_packet, size);
@@ -114,14 +110,12 @@ void send_fin(pcap_t *handle, struct packet_hdr *b_packet)
 	struct packet_hdr *new_hdr = (struct packet_hdr*)new_packet;
 
 	memcpy((uint8_t*)&(new_hdr->tcp) + new_hdr->tcp.th_off * 4, blockmsg, strlen(blockmsg));
-	printf("strlen : %d\n", strlen(blockmsg));
 
 	memcpy(new_hdr->eth.ether_dhost, b_packet->eth.ether_shost, 6);
 	memcpy(new_hdr->eth.ether_shost, b_packet->eth.ether_dhost, 6);
 
 	new_hdr->ipv4.ip_len = htons((b_packet->ipv4.ip_hl * 4) + (b_packet->tcp.th_off * 4) + strlen(blockmsg));
-	printf("ntohs(ip_len): %d\n", ntohs(new_hdr->ipv4.ip_len));
-	new_hdr->ipv4.ip_ttl = 128;
+
 	new_hdr->ipv4.ip_src = b_packet->ipv4.ip_dst;
 	new_hdr->ipv4.ip_dst = b_packet->ipv4.ip_src;
 	new_hdr->ipv4.ip_sum = 0;
@@ -178,13 +172,13 @@ int main(int argc, char* argv[])
 
         if(ntohs(hdr->eth.ether_type) != ETHERTYPE_IP)
         {
-            printf("[!]NOT IPV4\n");
+            // printf("[!]NOT IPV4\n");
             continue;
         }
         
         if(hdr->ipv4.ip_p != IPPROTO_TCP)
         {
-            printf("[!]NOT TCP\n");
+            //printf("[!]NOT TCP\n");
             continue;
         }
 
