@@ -23,14 +23,18 @@ void usage()
 
 int check_pattern(struct packet_hdr *packet, char* pattern)
 {
-	int data_len = packet->ipv4.ip_len - (packet->ipv4.ip_hl * 4) - (packet->tcp.th_off * 4);
+	int data_len = ntohs(packet->ipv4.ip_len) - (packet->ipv4.ip_hl * 4) - (packet->tcp.th_off * 4);
+	printf("%d\n", data_len);
 	uint8_t *data = (uint8_t*)&(packet->tcp) + packet->tcp.th_off * 4;
 
+	if(data_len < strlen(pattern))
+		return 0;
 	for(int i = 0 ; i < data_len - strlen(pattern) ; i++)
 	{
 		if(!memcmp(data + i, pattern, strlen(pattern)))
 			return 1;
 	}
+	
 	return 0;
 }
 
@@ -78,9 +82,8 @@ void send_rst(pcap_t *handle, struct packet_hdr *b_packet)
 	int size = sizeof(struct libnet_ethernet_hdr) + (b_packet->ipv4.ip_hl * 4) + (b_packet->tcp.th_off * 4);
 	int data_len = ntohs(b_packet->ipv4.ip_len) - (b_packet->ipv4.ip_hl * 4) - (b_packet->tcp.th_off * 4);
 
-	uint8_t *new_packet = (uint8_t*)malloc(size);
-	memcpy(new_packet, b_packet, size);
-	struct packet_hdr *new_hdr = (struct packet_hdr*)new_packet;
+	struct packet_hdr *new_hdr = (struct packet_hdr*)malloc(size);
+	memcpy(new_hdr, b_packet, size);
 
 	new_hdr->ipv4.ip_len = htons((b_packet->ipv4.ip_hl * 4) + (b_packet->tcp.th_off * 4));
 	new_hdr->ipv4.ip_sum = 0;
@@ -96,7 +99,7 @@ void send_rst(pcap_t *handle, struct packet_hdr *b_packet)
 	if(res != 0)
 		printf("[!] Failed to send RST packet!\n");
 
-	free(new_packet);
+	free(new_hdr);
 
 }
 
@@ -105,9 +108,8 @@ void send_fin(pcap_t *handle, struct packet_hdr *b_packet)
 	int size = sizeof(struct libnet_ethernet_hdr) + (b_packet->ipv4.ip_hl * 4) + (b_packet->tcp.th_off * 4) + strlen(blockmsg);
 	int data_len = ntohs(b_packet->ipv4.ip_len) - (b_packet->ipv4.ip_hl * 4) - (b_packet->tcp.th_off * 4);
 
-	uint8_t *new_packet = (uint8_t*)malloc(size);
-	memcpy(new_packet, b_packet, size);
-	struct packet_hdr *new_hdr = (struct packet_hdr*)new_packet;
+	struct packet_hdr *new_hdr = (struct packet_hdr*)malloc(size);
+	memcpy(new_hdr, b_packet, size);
 
 	memcpy((uint8_t*)&(new_hdr->tcp) + new_hdr->tcp.th_off * 4, blockmsg, strlen(blockmsg));
 
@@ -134,7 +136,7 @@ void send_fin(pcap_t *handle, struct packet_hdr *b_packet)
 	if(res != 0)
 		printf("[!] Failed to send RST packet!\n");
 
-	free(new_packet);
+	free(new_hdr);
 }
 
 int main(int argc, char* argv[])
